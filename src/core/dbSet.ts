@@ -18,16 +18,16 @@ export class DbSet<T> {
     return this.query().where(predicate);
   }
 
-  select<K extends keyof T>(...fields: K[]): Queryable<Pick<T, K>> {
-    return this.query().select(...fields);
+  select<R>(selector: (item: T) => R): Queryable<R> {
+    return this.query().select(selector);
   }
 
-  orderBy<K extends keyof T>(key: K): Queryable<T> {
-    return this.query().orderBy(key);
+  orderBy(selector: (item: T) => any): Queryable<T> {
+    return this.query().orderBy(selector);
   }
 
-  orderByDescending<K extends keyof T>(key: K): Queryable<T> {
-    return this.query().orderByDescending(key);
+  orderByDescending(selector: (item: T) => any): Queryable<T> {
+    return this.query().orderByDescending(selector);
   }
 
   skip(count: number): Queryable<T> {
@@ -38,8 +38,8 @@ export class DbSet<T> {
     return this.query().take(count);
   }
 
-  include(relation: keyof T): Queryable<T> {
-    return this.query().include(relation);
+  include(selector: (item: T) => any): Queryable<T> {
+    return this.query().include(selector);
   }
 
   async toArray(): Promise<T[]> {
@@ -68,6 +68,30 @@ export class DbSet<T> {
 
   async all(predicate: (item: T) => boolean): Promise<boolean> {
     return this.query().all(predicate);
+  }
+
+  async sum(selector: (item: T) => number): Promise<number> {
+    return this.query().sum(selector);
+  }
+
+  async average(selector: (item: T) => number): Promise<number> {
+    return this.query().average(selector);
+  }
+
+  async min(selector: (item: T) => number): Promise<number> {
+    return this.query().min(selector);
+  }
+
+  async max(selector: (item: T) => number): Promise<number> {
+    return this.query().max(selector);
+  }
+
+  async groupBy<K>(keySelector: (item: T) => K): Promise<Map<K, T[]>> {
+    return this.query().groupBy(keySelector);
+  }
+
+  async distinct(): Promise<T[]> {
+    return this.query().distinct();
   }
 
   private async withWriteLock<R>(operation: () => Promise<R>): Promise<R> {

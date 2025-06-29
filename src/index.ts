@@ -1,3 +1,4 @@
+// src/index.ts
 // Re-export reflect-metadata to ensure it's imported
 import 'reflect-metadata';
 
@@ -17,7 +18,7 @@ export {
 
 // Query system
 export { Queryable } from './query/queryable';
-export { Where } from './query/expressions';
+export { ExpressionParser } from './query/expression-parser';
 
 // Types
 export { 

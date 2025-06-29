@@ -1,10 +1,13 @@
+import { ExpressionParser } from './expression-parser';
+
 export class Queryable<T> {
   private filters: ((item: T) => boolean)[] = [];
-  private sortKeys: { key: keyof T; desc: boolean }[] = [];
+  private sortKeys: { extractor: (item: T) => any; desc: boolean }[] = [];
   private skipCount = 0;
   private takeCount?: number;
   private includeRelations: string[] = [];
-  private selectFields?: (keyof T)[];
+  private selectFields?: string[];
+  private projection?: (item: T) => any;
 
   constructor(
     private dbContext: any,
@@ -14,25 +17,28 @@ export class Queryable<T> {
 
   where(predicate: (item: T) => boolean): Queryable<T> {
     const newQuery = this.clone();
-    newQuery.filters.push(predicate);
+    const compiled = ExpressionParser.compile(predicate);
+    newQuery.filters.push(compiled);
     return newQuery;
   }
 
-  select<K extends keyof T>(...fields: K[]): Queryable<Pick<T, K>> {
+  select<R>(selector: (item: T) => R): Queryable<R> {
     const newQuery = this.clone() as any;
-    newQuery.selectFields = fields;
+    newQuery.projection = ExpressionParser.compile(selector);
     return newQuery;
   }
 
-  orderBy<K extends keyof T>(key: K): Queryable<T> {
+  orderBy(selector: (item: T) => any): Queryable<T> {
     const newQuery = this.clone();
-    newQuery.sortKeys.push({ key, desc: false });
+    const extractor = ExpressionParser.compile(selector);
+    newQuery.sortKeys.push({ extractor, desc: false });
     return newQuery;
   }
 
-  orderByDescending<K extends keyof T>(key: K): Queryable<T> {
+  orderByDescending(selector: (item: T) => any): Queryable<T> {
     const newQuery = this.clone();
-    newQuery.sortKeys.push({ key, desc: true });
+    const extractor = ExpressionParser.compile(selector);
+    newQuery.sortKeys.push({ extractor, desc: true });
     return newQuery;
   }
 
@@ -48,28 +54,32 @@ export class Queryable<T> {
     return newQuery;
   }
 
-  include(relation: keyof T): Queryable<T> {
+  include(selector: (item: T) => any): Queryable<T> {
     const newQuery = this.clone();
-    newQuery.includeRelations.push(relation as string);
+    const relation = ExpressionParser.extractPropertyPath(selector);
+    newQuery.includeRelations.push(relation);
     return newQuery;
   }
 
   async toArray(): Promise<T[]> {
     let results = await this.dbContext.getData(this.tableName);
     
+    // Apply filters
     for (const filter of this.filters) {
       results = results.filter(filter);
     }
     
+    // Apply sorting
     for (const sort of this.sortKeys) {
       results.sort((a: any, b: any) => {
-        const aVal = a[sort.key];
-        const bVal = b[sort.key];
+        const aVal = sort.extractor(a);
+        const bVal = sort.extractor(b);
         const result = aVal < bVal ? -1 : aVal > bVal ? 1 : 0;
         return sort.desc ? -result : result;
       });
     }
     
+    // Apply skip/take
     if (this.skipCount > 0) {
       results = results.slice(this.skipCount);
     }
@@ -77,18 +87,14 @@ export class Queryable<T> {
       results = results.slice(0, this.takeCount);
     }
     
+    // Load relations
     if (this.includeRelations.length > 0) {
       results = await this.loadRelations(results);
     }
     
-    if (this.selectFields) {
-      results = results.map((item : any)=> {
-        const projected: any = {};
-        for (const field of this.selectFields!) {
-          projected[field] = item[field as string];
-        }
-        return projected;
-      });
+    // Apply projection
+    if (this.projection) {
+      results = results.map(this.projection);
     }
     
     return results;
@@ -127,8 +133,58 @@ export class Queryable<T> {
   }
 
   async all(predicate: (item: T) => boolean): Promise<boolean> {
+    const compiled = ExpressionParser.compile(predicate);
     const results = await this.toArray();
-    return results.every(predicate);
+    return results.every(compiled);
+  }
+
+  async sum(selector: (item: T) => number): Promise<number> {
+    const compiled = ExpressionParser.compile(selector);
+    const results = await this.toArray();
+    return results.reduce((sum, item) => sum + compiled(item), 0);
+  }
+
+  async average(selector: (item: T) => number): Promise<number> {
+    const compiled = ExpressionParser.compile(selector);
+    const results = await this.toArray();
+    if (results.length === 0) return 0;
+    return results.reduce((sum, item) => sum + compiled(item), 0) / results.length;
+  }
+
+  async min(selector: (item: T) => number): Promise<number> {
+    const compiled = ExpressionParser.compile(selector);
+    const results = await this.toArray();
+    if (results.length === 0) throw new Error('Sequence contains no elements');
+    return Math.min(...results.map(compiled));
+  }
+
+  async max(selector: (item: T) => number): Promise<number> {
+    const compiled = ExpressionParser.compile(selector);
+    const results = await this.toArray();
+    if (results.length === 0) throw new Error('Sequence contains no elements');
+    return Math.max(...results.map(compiled));
+  }
+
+  async groupBy<K>(keySelector: (item: T) => K): Promise<Map<K, T[]>> {
+    const compiled = ExpressionParser.compile(keySelector);
+    const results = await this.toArray();
+    const groups = new Map<K, T[]>();
+    
+    for (const item of results) {
+      const key = compiled(item);
+      if (!groups.has(key)) {
+        groups.set(key, []);
+      }
+      groups.get(key)!.push(item);
+    }
+    
+    return groups;
+  }
+
+  async distinct(): Promise<T[]> {
+    const results = await this.toArray();
+    return Array.from(new Set(results.map(item => JSON.stringify(item))))
+      .map(str => JSON.parse(str));
   }
 
   private clone(): Queryable<T> {
@@ -139,6 +195,7 @@ export class Queryable<T> {
     newQuery.takeCount = this.takeCount;
     newQuery.includeRelations = [...this.includeRelations];
     newQuery.selectFields = this.selectFields ? [...this.selectFields] : undefined;
+    newQuery.projection = this.projection;
     return newQuery;
   }
 
@@ -162,3 +219,5 @@ export class Queryable<T> {
     return results;
   }
 }
+
+// src/core/dbSet.ts
