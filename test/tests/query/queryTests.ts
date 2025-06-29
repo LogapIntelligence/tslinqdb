@@ -10,7 +10,6 @@ export async function run(runner: TestRunner): Promise<void> {
   context = await createTestContext();
   await seedTestData(context);
   
-  // Basic Query Tests
   await runner.test('Basic where clause', async () => {
     const users = await context.users
       .where(u => u.age! > 25)
@@ -29,7 +28,6 @@ export async function run(runner: TestRunner): Promise<void> {
     assertEqual(products.length, 2);
   });
   
-  // String Method Tests
   await runner.test('String contains method', async () => {
     const users = await context.users
       .where(u => u.email.includes("test.com"))
@@ -39,7 +37,6 @@ export async function run(runner: TestRunner): Promise<void> {
   });
   
   await runner.test('Case-insensitive contains', async () => {
-    // Assuming one user has TEST.COM in uppercase
     const users = await context.users
       .where(u => u.email.toLowerCase().includes("test.com"))
       .toArray();
@@ -72,7 +69,6 @@ export async function run(runner: TestRunner): Promise<void> {
     assertEqual(users.length, 1);
   });
   
-  // Expression-based Comparisons
   await runner.test('Expression equality', async () => {
     const users = await context.users
       .where(u => u.email === 'alice@test.com')
@@ -106,7 +102,6 @@ export async function run(runner: TestRunner): Promise<void> {
     assertEqual(products.length, 2);
   });
   
-  // Projection Tests
   await runner.test('Select projection', async () => {
     const projections = await context.users
       .select(u => ({ name: u.name, email: u.email }))
@@ -131,7 +126,6 @@ export async function run(runner: TestRunner): Promise<void> {
     assert(transformed[0].fullName === transformed[0].fullName.toUpperCase(), "fullname should be equal");
   });
   
-  // Ordering Tests
   await runner.test('OrderBy expression ascending', async () => {
     const products = await context.products
       .orderBy(p => p.price)
@@ -157,11 +151,9 @@ export async function run(runner: TestRunner): Promise<void> {
       .orderByDescending(p => p.price)
       .toArray();
     
-    // Should order by isActive first, then by price descending
     assert(products[0].isActive === false || products[products.length - 1].isActive === true, "Should order by isActive first, then by price descending");
   });
   
-  // Pagination Tests
   await runner.test('Skip and Take', async () => {
     const products = await context.products
       .orderBy(p => p.price)
@@ -173,7 +165,6 @@ export async function run(runner: TestRunner): Promise<void> {
     assertEqual(products[0].name, 'Keyboard');
   });
   
-  // Element Operation Tests
   await runner.test('First', async () => {
     const user = await context.users
       .orderBy(u => u.name)
@@ -217,7 +208,6 @@ export async function run(runner: TestRunner): Promise<void> {
     }
   });
   
-  // Aggregation Tests
   await runner.test('Count', async () => {
     const totalCount = await context.products.count();
     assertEqual(totalCount, 4);
@@ -274,12 +264,11 @@ export async function run(runner: TestRunner): Promise<void> {
     assertEqual(allActive, false);
   });
   
-  // Grouping Tests
   await runner.test('GroupBy basic', async () => {
     const byActive = await context.products
       .groupBy(p => p.isActive);
     
-    assertEqual(byActive.size, 2); // true and false groups
+    assertEqual(byActive.size, 2); 
     assert(byActive.has(true), 'Should have active products');
     assert(byActive.has(false), 'Should have inactive products');
   });
@@ -292,14 +281,11 @@ export async function run(runner: TestRunner): Promise<void> {
     assert(expensiveByActive.size <= 2, "Grouping exceeds price listing");
   });
   
-  // Distinct Tests
   await runner.test('Distinct products', async () => {
-    // Note: Assumes all products are unique
     const distinctProducts = await context.products.distinct();
     assertEqual(distinctProducts.length, 4);
   });
   
-  // Complex Query Tests
   await runner.test('Complex query chain', async () => {
     const results = await context.products
       .where(p => p.isActive === true)
@@ -350,7 +336,6 @@ export async function run(runner: TestRunner): Promise<void> {
   });
   
   await runner.test('Trim whitespace in queries', async () => {
-    // Assuming some data might have trailing spaces
     const products = await context.products
       .where(p => p.name.trim() === "Laptop")
       .toArray();
@@ -358,7 +343,6 @@ export async function run(runner: TestRunner): Promise<void> {
     assert(products.length >= 1, 'Should find laptop even with spaces');
   });
   
-  // Edge Cases
   await runner.test('Empty result handling', async () => {
     const noResults = await context.users
       .where(u => u.email === 'nonexistent@test.com')
@@ -387,10 +371,9 @@ export async function run(runner: TestRunner): Promise<void> {
     assert(results.length >= 0, 'Complex conditions should work');
   });
   
-  // Performance-oriented tests
   await runner.test('Efficient filtering before projection', async () => {
     const results = await context.products
-      .where(p => p.price > 100) // Filter first
+      .where(p => p.price > 100) 
       .where(p => p.isActive === true)
       .select(p => ({ 
         name: p.name, 

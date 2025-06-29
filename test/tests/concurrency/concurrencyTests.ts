@@ -10,7 +10,7 @@ export async function run(runner: TestRunner): Promise<void> {
   
   await runner.test('Concurrent reads - no interference', async () => {
     context = await createTestContext();
-    clear
+    
     const testData = Array.from({ length: 10 }, (_, i) => ({
       name: `Concurrent Product ${i}`,
       price: i * 10,

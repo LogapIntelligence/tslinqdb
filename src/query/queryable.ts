@@ -64,7 +64,6 @@ export class Queryable<T> {
   async toArray(): Promise<T[]> {
     let results = await this.dbContext.getData(this.tableName);
     
-    // Apply filters
     for (const filter of this.filters) {
       results = results.filter(filter);
     }

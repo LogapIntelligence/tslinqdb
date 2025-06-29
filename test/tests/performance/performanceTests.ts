@@ -38,7 +38,6 @@ export async function run(runner: TestRunner): Promise<void> {
     context = await createTestContext();
     
     const items : any = [];
-
     for (let i = 0; i < 500; i++) {
       items.push({
         name: `Perf User ${i}`,
@@ -53,7 +52,7 @@ export async function run(runner: TestRunner): Promise<void> {
     const results = await context.users
       .where(u => u.age! > 30)
       .where(u => u.email.includes('1'))
-      .orderByDescending('age')
+      .orderByDescending(u => u.age) // Fixed: was 'age'
       .skip(10)
       .take(20)
       .toArray();
@@ -213,46 +212,46 @@ export async function run(runner: TestRunner): Promise<void> {
     await context.dispose();
   });
   
-  await runner.test('Query plan optimization', async () => {
-    context = await createTestContext();
-    
-    const parentCat = await context.categories.add({
-      name: 'Electronics'
-    });
-    
-    for (let i = 0; i < 50; i++) {
-      await context.categories.add({
-        name: `Subcategory ${i}`,
-        parentCategoryId: parentCat.id
-      });
-    }
-    
-    const start1 = performance.now();
-    const result1 = await context.categories
-      .where(c => c.parentCategoryId === parentCat.id)
-      .orderBy('name')
-      .take(10)
-      .toArray();
-    const duration1 = performance.now() - start1;
-    
-    const start2 = performance.now();
-    const allCats = await context.categories.toArray();
-    const result2 = allCats
-      .sort((a, b) => a.name.localeCompare(b.name))
-      .filter(c => c.parentCategoryId === parentCat.id)
-      .slice(0, 10);
-    const duration2 = performance.now() - start2;
-    
-    assertEqual(result1.length, 10);
-    assertEqual(result1.length, result2.length);
-    
-    assert(
-      duration1 <= duration2 * 1.5,
-      'Query builder should optimize operations'
-    );
-    
-    await context.dispose();
+await runner.test('Query plan optimization', async () => {
+  context = await createTestContext();
+  
+  const parentCat = await context.categories.add({
+    name: 'Electronics'
   });
+  
+  for (let i = 0; i < 50; i++) {
+    await context.categories.add({
+      name: `Subcategory ${i}`,
+      parentCategoryId: parentCat.id
+    });
+  }
+  
+  const start1 = performance.now();
+  const result1 = await context.categories
+    .where(c => c.parentCategoryId === parentCat.id)
+    .orderBy(c => c.name) // Fixed: was 'name'
+    .take(10)
+    .toArray();
+  const duration1 = performance.now() - start1;
+  
+  const start2 = performance.now();
+  const allCats = await context.categories.toArray();
+  const result2 = allCats
+    .filter(c => c.parentCategoryId === parentCat.id)
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .slice(0, 10);
+  const duration2 = performance.now() - start2;
+  
+  assertEqual(result1.length, 10);
+  assertEqual(result1.length, result2.length);
+  
+  assert(
+    duration1 <= duration2 * 1.5,
+    'Query builder should optimize operations'
+  );
+  
+  await context.dispose();
+});
   
   runner.endGroup();
 }
