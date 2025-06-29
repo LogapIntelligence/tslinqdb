@@ -1,0 +1,52 @@
+{
+  "name": "tslinqdb",
+  "version": "0.1.0",
+  "description": "A lightweight TypeScript ORM with LINQ-style queries and multiple storage providers",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist/**/*",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "test": "tsx test/test.ts",
+    "test:watch": "tsx watch test/test.ts",
+    "build": "npm run clean && tsc -p tsconfig.build.json",
+    "clean": "node -e \"require('fs').rmSync('dist', { recursive: true, force: true })\"",
+    "prepublishOnly": "npm run build && npm test",
+    "prepare": "npm run build"
+  },
+  "keywords": [
+    "orm",
+    "typescript",
+    "database",
+    "query-builder",
+    "linq"
+  ],
+  "author": "Angelo Wolff angelo@logap.co.za",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/LogapIntelligence/tslinqdb.git"
+  },
+  "homepage": "https://github.com/LogapIntelligence/tslinqdb#readme",
+  "bugs": {
+    "url": "https://github.com/LogapIntelligence/tslinqdb/issues"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "dependencies": {
+    "reflect-metadata": "^0.2.2"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.7",
+    "nodemon": "^3.0.2",
+    "tsx": "^4.20.3",
+    "typescript": "^5.8.3"
+  },
+  "peerDependencies": {
+    "reflect-metadata": "^0.2.0"
+  }
+}
