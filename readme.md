@@ -1,3 +1,5 @@
+![Cover image tslinqdb](tslinqcover.png)
+
 # TypeScript ORM
 
 A lightweight, Entity Framework-inspired ORM for TypeScript with LINQ-style querying, decorators, and multiple storage providers that comes standard with out of box persistant storage using //FAST
@@ -72,7 +74,7 @@ export class Post {
 ### 2. Create Your DbContext
 
 ```typescript
-import { DbContext, DbSet, DbConfig } from 'typescript-orm';
+import { DbContext, DbSet, DbConfig } from 'tslinqdb';
 import { User, Post } from './entities';
 
 export class AppDbContext extends DbContext {
