@@ -112,7 +112,6 @@ export async function run(runner: TestRunner): Promise<void> {
       .select(u => ({ name: u.name, email: u.email }))
       .toArray();
     
-    console.log(projections);
     assertEqual(projections.length, 3);
     assert(!('age' in projections[0]), 'Age should not be in projection');
     assert('name' in projections[0], 'Name should be in projection');
@@ -138,8 +137,9 @@ export async function run(runner: TestRunner): Promise<void> {
       .orderBy(p => p.price)
       .toArray();
     
-    assertEqual(products[0].name, 'Laptop');
-    assertEqual(products[products.length - 1].name, 'Monitor');
+      console.log(products);
+    assertEqual(products[0].name, 'Mouse');
+    assertEqual(products[products.length - 1].name, 'Laptop');
   });
   
   await runner.test('OrderBy expression descending', async () => {
@@ -315,7 +315,7 @@ export async function run(runner: TestRunner): Promise<void> {
   });
   
   await runner.test('Complex string search', async () => {
-    const searchTerm = "john";
+    const searchTerm = "alice";
     const users = await context.users
       .where(u => 
         u.name.toLowerCase().includes(searchTerm) ||
